@@ -29,10 +29,6 @@ const productSchema = new mongoose.Schema({
     sold: {
         type: Number,
         default: 0
-    },
-    photo: {
-        type: String,
-        required: true
     }
 }, {timestamps: true})
 

@@ -1,7 +1,5 @@
 const Product = require("../models/product");
-const formidable = require("formidable");
-const _ = require("lodash");
-const fs = require("fs");
+
 
 exports.productById = async (req, res, next, id) => {
     const product = await Product.findById(id).populate('category');
@@ -16,7 +14,6 @@ exports.productById = async (req, res, next, id) => {
 }
 
 exports.read = (req, res) => {
-    console.log(req.product);
     req.product.photo = undefined;
     if(req.product) {
         res.status(200).send(req.product);
@@ -25,103 +22,37 @@ exports.read = (req, res) => {
 
 
 exports.create = (req, res) => {
-    console.log(req.file);
-    console.log(req.body);
-    const { name, description, price, category, quantity } = req.body;
-    const photo = req.file.path;
+    try {
+        const { name, description, price, category, quantity } = req.body.values;
 
-    if (!name || !description || !price || !category || !quantity) {
-        return res.status(400).json({
-            error: 'All fields are required'
-        });
-    }
-
-    let product = new Product({name, description, price, category, quantity, photo});
-
-    product.save((err, result) => {
-        if (err) {
-            res.status(400).json({
-                error: "product update error"
-            })
-        }
-        res.json(result);
-    });
-}
-
-// exports.create = (req, res) => {
-//     let form = new formidable.IncomingForm();
-//     form.keepExtensions = true;
-//     form.parse(req, (err, fields, files) => {
-//         if (err) {
-//             return res.status(400).json({
-//                 error: 'Image could not be uploaded'
-//             });
-//         }
-
-//         const { name, description, price, category, quantity } = fields;
-
-//         if (!name || !description || !price || !category || !quantity) {
-//             return res.status(400).json({
-//                 error: 'All fields are required'
-//             });
-//         }
-
-//         let product = new Product(fields);
-
-//         if (files.photo) {
-//             if (files.photo.size > 1000000) {
-//                 return res.status(400).json({
-//                     error: 'Image should be less than 1mb in size'
-//                 });
-//             }
-//             product.photo.data = fs.readFileSync(files.photo.path);
-//             product.photo.contentType = files.photo.type;
-//         }
-
-//         product.save((err, result) => {
-//             if (err) {
-//                 res.status(400).json({
-//                     error: "product update error"
-//                 })
-//             }
-//             res.json(result);
-//         });
-//     });
-// };
-
-
-exports.update = (req, res) => {
-    let form = new formidable.IncomingForm();
-    form.keepExtensions = true;
-    form.parse(req, (err, fields, files) => {
-        if (err) {
+        if (!name || !description || !price || !category || !quantity) {
             return res.status(400).json({
-                error: 'Image could not be uploaded'
+                error: 'All fields are required'
             });
         }
 
-        let product = req.product;
-        product = _.extend(product, fields);
+        let product = new Product({name, description, price, category, quantity});
 
-        if (files.photo) {
-            if (files.photo.size > 1000000) {
-                return res.status(400).json({
-                    error: 'Image should be less than 1mb in size'
-                });
-            }
-            product.photo.data = fs.readFileSync(files.photo.path);
-            product.photo.contentType = files.photo.type;
-        }
+        const saveProduct = product.save();
+        res.status(200).json({
+            message:"Product created successfully"
+        })
+    } catch (error) {
+        res.status(400).json({
+            message:"Product create error"
+        })
+    }
+}
 
-        product.save((err, result) => {
-            if (err) {
-                res.status(400).json({
-                    error: "product update error"
-                })
-            }
-            res.json(result);
-        });
-    });
+exports.update = async (req, res) => {
+    const product = req.product;
+
+    if(product) {
+        const updateProduct = await Product.findByIdAndUpdate(product._id, {$set:req.body.values}, {new: true});
+        res.status(200).json({
+            message:"Product updated successfully"
+        })
+    }
 };
 
 exports.remove = async (req, res) => {
@@ -182,7 +113,7 @@ exports.listBySearch = (req, res) => {
 
 exports.list = async (req, res) => {
     // const limit = req.query.limit ? req.query.limit : 6;
-    const page_size = 3;
+    const page_size = 9;
     const page = parseInt(req.query.page || '0');
     const total = await Product.countDocuments();
 
